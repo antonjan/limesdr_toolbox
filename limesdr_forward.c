@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 		printf("Usage: %s <OPTIONS>\n", argv[0]);
 		printf("  -f <INPUT_FREQUENCY>\n"
 		       "  -F <OUTPUT_FREQUENCY>\n"
-		       "  -b <BANDWIDTH_CALIBRATING> (default: 8e6)\n"
+		       "  -b <BANDWIDTH_CALIBRATING> (default: 2e3)\n"//changed from 8e6
 		       "  -s <SAMPLE_RATE> (default: 2e6)\n"
 		       "  -g <INPUT_GAIN_NORMALIZED> (default: unused)\n"
 		       "  -G <OUTPUT_GAIN_NORMALIZED> (default: 1)\n"
@@ -48,7 +48,7 @@ int main(int argc, char** argv)
 	int i;
 	unsigned int freq_input = 0;
 	unsigned int freq_output = 0;
-	double bandwidth_calibrating = 8e6;
+	double bandwidth_calibrating = 2e3;//change from 8e6
 	double sample_rate = 2e6;
 	double gain_input = -1;
 	double gain_output = 1;
@@ -91,6 +91,7 @@ int main(int argc, char** argv)
 	}
 	lms_device_t* device = NULL;
 	double host_sample_rate;
+	//Setup Lime TX Interface sample rate , bandwith, frequenct,Chanel ,antenna port
 	if ( limesdr_init( sample_rate,
 			   freq_output,
 			   bandwidth_calibrating,
@@ -104,7 +105,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
-
+//Setup Lime RX Interface frequency, bandwith, gain, channel, Antenna
 	if ( limesdr_set_channel( freq_input,
 				  bandwidth_calibrating,
 				  gain_input,
@@ -114,6 +115,7 @@ int main(int argc, char** argv)
 				  device ) < 0 ) {
 		return 1;
 	}
+	//TX Stream
 	lms_stream_t tx_stream = {
 		.channel = channel_output,
 		.fifoSize = 2 * buffer_size,
@@ -125,12 +127,13 @@ int main(int argc, char** argv)
 		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
 		return 1;
 	}
+//
 	LMS_StartStream(&tx_stream);
 	lms_stream_meta_t tx_meta;
 	tx_meta.waitForTimestamp = true;
 	tx_meta.flushPartialPacket = false;
 
-
+//
 	LMS_EnableChannel(device, LMS_CH_RX, channel_input, true);
 	lms_stream_t rx_stream = {
 		.channel = channel_input,
@@ -148,6 +151,7 @@ int main(int argc, char** argv)
 	lms_stream_meta_t rx_meta;
 	rx_meta.waitForTimestamp = false;
 	rx_meta.flushPartialPacket = false;
+	//Send RX stream to tx Stream
 	while( 1 ) {
 		int nb_samples_to_send = LMS_RecvStream( &rx_stream, buff, buffer_size, &rx_meta, 1000 );
 		if ( nb_samples_to_send < 0 ) {
